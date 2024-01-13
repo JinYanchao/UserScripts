@@ -80,7 +80,7 @@ if [ $1 ]; then
 	if [ $2 ]; then
 		docker run -it --security-opt seccomp=unconfined --rm --net=host -v $1:/media -v $2:/etc/xiaoya -e LANG=C.UTF-8 xiaoyaliu/glue:latest /update_all.sh
 		#echo "http://$docker0:8096" > $2/emby_server.txt
-		echo "http://127.0.0.1:8096" >$2/emby_server.txt
+		echo "http://127.0.0.1:6908" >$2/emby_server.txt
 		echo e825ed6f7f8f44ffa0563cddaddce14d >$2/infuse_api_key.txt
 		chmod -R 777 $1/*
 	else
