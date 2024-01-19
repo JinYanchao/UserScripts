@@ -80,7 +80,7 @@ if [ $1 ]; then
 	if [ $2 ]; then
 		docker run -it --security-opt seccomp=unconfined --rm --net=host -v $1:/media -v $2:/etc/xiaoya -e LANG=C.UTF-8 xiaoyaliu/glue:latest /update_all.sh
 		#echo "http://$docker0:8096" > $2/emby_server.txt
-		echo "http://127.0.0.1:6908" >$2/emby_server.txt
+		echo "http://$docker0:6908" >$2/emby_server.txt
 		echo e825ed6f7f8f44ffa0563cddaddce14d >$2/infuse_api_key.txt
 		chmod -R 777 $1/*
 	else
@@ -93,16 +93,23 @@ if [ $1 ]; then
 			docker run -it --security-opt seccomp=unconfined --rm --net=host -v $1:/media -v $config_dir:/etc/xiaoya -e LANG=C.UTF-8 xiaoyaliu/glue:latest /update_all.sh
 		fi
 		#echo "http://$docker0:8096" > $config_dir/emby_server.txt
-		echo "http://127.0.0.1:8096" >$config_dir/emby_server.txt
+		echo "http://$docker0:6908" >$config_dir/emby_server.txt
 		echo e825ed6f7f8f44ffa0563cddaddce14d >$config_dir/infuse_api_key.txt
 		chmod -R 777 $1/*
+	fi
+
+	if ! grep xiaoya.host /etc/hosts; then
+		echo -e "127.0.0.1\txiaoya.host\n" >>/etc/hosts
+		xiaoya_host="127.0.0.1"
+	else
+		xiaoya_host=$(grep xiaoya.host /etc/hosts | awk '{print $1}' | head -n1)
 	fi
 
 	echo "开始安装Emby容器....."
 	#wget -q -O /tmp/Emby.Server.Implementations.dll http://docker.xiaoya.pro/Emby.Server.Implementations.dll
 	case $cpu_arch in
 	"x86_64" | *"amd64"*)
-		docker run -d --privileged=true --name emby -v $1/config:/config -v $1/xiaoya:/media --net=container:xiaoya --user 0:0 --restart always amilys/embyserver:beta
+		docker run -d --privileged=true --name emby -v $1/config:/config -v $1/xiaoya:/media -v /etc/nsswitch.conf:/etc/nsswitch.conf --network=host --add-host="xiaoya.host:$xiaoya_host" --user 0:0 --restart always amilys/embyserver:beta
 		#docker cp /tmp/Emby.Server.Implementations.dll emby:/system/
 		#docker exec -i emby chmod 644 /system/Emby.Server.Implementations.dll
 		#docker restart emby
@@ -128,8 +135,8 @@ if [ $1 ]; then
 		;;
 	esac
 	sleep 5
-	if ! curl -I -s http://172.17.0.1:2345/ | grep -q "302"; then
-		dockername=$(docker ps | grep xiaoyaliu/alist | awk '{print $NF}')
+	if ! curl -I -s http://$docker0:2345/ | grep -q "302"; then
+		dockername=$(docker ps | grep xiaoyaliu/alist | grep 5678 | head -n1 | awk '{print $NF}')
 		echo "重启 xiaoya"
 		docker restart $dockername 2>/dev/null
 	fi
